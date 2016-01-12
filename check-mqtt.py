@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+'''
+check_myrightweight.py makes use of some code from Jan-Piet Mens check-mqtt.py.
+    https://github.com/jpmens/check-mqtt
+    
+Copyright (c) 2016 Jeff Albrecht
+All rights reserved.
+
+Use this to monitor an mqtt application with Nagios.
+
+Unlike check-mqtt which this is based on that monitors the mqtt broker, 
+check_myrightweight will not publish a response.
+check_myrightweight waits to hear a 'pong' sent from the application it is 
+monitoring in response to the'ping' sent from check_myrightweight.py. 
+
+'''
+
 # Copyright (c) 2013-2015 Jan-Piet Mens <jpmens()gmail.com>
 # All rights reserved.
 #
@@ -70,7 +86,13 @@ def on_message(mosq, userdata, msg):
     global message
     global status
 
-    if str(msg.payload) == check_payload:
+    check_this = check_payload
+    if (args.ignore_ping != None):
+        check_this = args.ignore_ping
+        if str(msg.payload == 'ping'): # if we're loooking for a 'pong' from a monitored application skip our ping.
+            pass
+ 
+    if str(msg.payload) == check_this:
         userdata['have_response'] = True
         status = 0
         elapsed = (current_milli_time() - userdata['start_time'])
@@ -97,7 +119,8 @@ parser.add_argument('-P', '--port', metavar="<port>", help="network port to conn
 parser.add_argument('-u', '--username', metavar="<username>", help="username", dest='mqtt_username', default=None)
 parser.add_argument('-p', '--password', metavar="<password>", help="password", dest='mqtt_password', default=None)
 parser.add_argument('-t', '--topic', metavar="<topic>", help="topic to use for the check (defaults to nagios/test)", dest='check_topic', default='nagios/test')
-parser.add_argument('-m', '--max-wait', metavar="<seconds>", help="maximum time to wait for the check (defaults to 4 seconds)", dest='max_wait', default=4000, type=int)
+parser.add_argument('-m', '--max-wait', metavar="<seconds>", help="maximum time to wait for the check (defaults to 4 seconds)", dest='max_wait', default=4, type=int)
+parser.add_argument('-i', '--ignoreping', metavar="<ignoreping>", help="ignore ping, test on pong sent from monitored clients", dest='ignore_ping', default=None)
 args = parser.parse_args()
 
 userdata = {
