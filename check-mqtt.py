@@ -35,6 +35,7 @@ import os
 import argparse
 
 check_payload = 'PiNG'
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 status = 0
 message = ''
@@ -72,8 +73,8 @@ def on_message(mosq, userdata, msg):
     if str(msg.payload) == check_payload:
         userdata['have_response'] = True
         status = 0
-        elapsed = (time.time() - userdata['start_time'])
-        message = "PUB to %s at %s responded in %.2f" % (args.check_topic, args.mqtt_host, elapsed)
+        elapsed = (current_milli_time() - userdata['start_time'])
+        message = "PUB to %s at %s responded in %d milliseconds" % (args.check_topic, args.mqtt_host, elapsed)
 
 def on_disconnect(mosq, userdata, rc):
 
@@ -96,12 +97,12 @@ parser.add_argument('-P', '--port', metavar="<port>", help="network port to conn
 parser.add_argument('-u', '--username', metavar="<username>", help="username", dest='mqtt_username', default=None)
 parser.add_argument('-p', '--password', metavar="<password>", help="password", dest='mqtt_password', default=None)
 parser.add_argument('-t', '--topic', metavar="<topic>", help="topic to use for the check (defaults to nagios/test)", dest='check_topic', default='nagios/test')
-parser.add_argument('-m', '--max-wait', metavar="<seconds>", help="maximum time to wait for the check (defaults to 4 seconds)", dest='max_wait', default=4, type=int)
+parser.add_argument('-m', '--max-wait', metavar="<seconds>", help="maximum time to wait for the check (defaults to 4 seconds)", dest='max_wait', default=4000, type=int)
 args = parser.parse_args()
 
 userdata = {
     'have_response' : False,
-    'start_time'    : time.time(),
+    'start_time'    : current_milli_time(),
 }
 mqttc = paho.Client('nagios-%d' % (os.getpid()), clean_session=True, userdata=userdata, protocol=4)
 mqttc.on_message = on_message
@@ -133,7 +134,7 @@ except Exception, e:
 rc = 0
 while userdata['have_response'] == False and rc == 0:
     rc = mqttc.loop()
-    if time.time() - userdata['start_time'] > args.max_wait:
+    if current_milli_time() - userdata['start_time'] > args.max_wait:
         message = 'timeout waiting for PUB'
         status = 2
         break
