@@ -50,7 +50,7 @@ import sys
 import os
 import argparse
 
-check_payload = 'PiNG'
+check_payload = 'ping'
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 status = 0
@@ -96,7 +96,7 @@ def on_message(mosq, userdata, msg):
         userdata['have_response'] = True
         status = 0
         elapsed = (current_milli_time() - userdata['start_time'])
-        message = "PUB to %s at %s responded in %d milliseconds" % (args.check_topic, args.mqtt_host, elapsed)
+        message = "%d" % (elapsed)
 
 def on_disconnect(mosq, userdata, rc):
 
@@ -109,7 +109,7 @@ def exitus(status=0, message="all is well"):
     to status
     """
 
-    print "%s - %s" % (nagios_codes[status], message)
+    print "%s" % (message)
     sys.exit(status)
 
 
